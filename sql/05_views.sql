@@ -74,14 +74,15 @@ GROUP BY nxt.snapshot_month, fb.sort_order, fb.bucket_code;
 
 -- Vintage curves: of the accounts opened in a quarter, what share had been 30+ days late
 -- by each month after opening. Only accounts opened inside the data window are used,
--- because older accounts are missing their early months.
+-- because older accounts are missing their early months. Each quarter's curve stops at
+-- the last month that every account in it has reached, so the group never changes.
 CREATE OR REPLACE VIEW vw_vintage_curve AS
 WITH RECURSIVE month_numbers (n) AS (
     SELECT 1
     UNION ALL
     SELECT n + 1 FROM month_numbers WHERE n < 36
 ),
-vintage_accounts AS (
+account_ages AS (
     SELECT
         h.account_id,
         CONCAT(YEAR(h.open_date), '-Q', QUARTER(h.open_date)) AS vintage,
@@ -93,6 +94,12 @@ vintage_accounts AS (
             AND s.days_past_due >= 30) AS first_late_month
     FROM heloc_account h
     WHERE h.open_date >= (SELECT MIN(snapshot_month) FROM monthly_snapshot)
+),
+vintage_accounts AS (
+    SELECT
+        a.*,
+        MIN(a.months_observed) OVER (PARTITION BY a.vintage) AS vintage_months_observed
+    FROM account_ages a
 )
 SELECT
     v.vintage,
@@ -101,7 +108,7 @@ SELECT
     COALESCE(SUM(v.first_late_month <= m.n), 0)                              AS ever_30_plus,
     ROUND(COALESCE(SUM(v.first_late_month <= m.n), 0) / COUNT(*), 4)        AS cumulative_30_plus_rate
 FROM vintage_accounts v
-JOIN month_numbers m ON m.n <= v.months_observed
+JOIN month_numbers m ON m.n <= v.vintage_months_observed
 GROUP BY v.vintage, m.n;
 
 
