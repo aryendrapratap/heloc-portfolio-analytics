@@ -47,3 +47,31 @@ jobs:
 
       - name: Run tests
         run: pytest -v
+
+  docker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Start the project with Docker Compose
+        run: docker compose up -d --build
+
+      - name: Wait for the dashboard
+        run: |
+          for i in $(seq 1 60); do
+            if curl -sf http://localhost:8501/_stcore/health; then
+              echo " - dashboard is up"
+              exit 0
+            fi
+            sleep 5
+          done
+          docker compose logs
+          exit 1
+
+      - name: Check the sample data loaded
+        run: docker compose exec -T db mysql -uheloc_user -pheloc_password heloc_db -e "SELECT COUNT(*) AS snapshots FROM monthly_snapshot;"
+
+      - name: Stop
+        if: always()
+        run: docker compose down

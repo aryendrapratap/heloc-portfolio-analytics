@@ -1,0 +1,33 @@
+# Runs the whole project: MySQL 9.7 plus the dashboard.
+#   docker compose up --build      then open http://localhost:8501
+#   docker compose down            to stop
+# The passwords below are only for this local demo database.
+
+services:
+  db:
+    image: mysql:9.7
+    command: --log-bin-trust-function-creators=1
+    environment:
+      MYSQL_ROOT_PASSWORD: root_password
+      MYSQL_DATABASE: heloc_db
+      MYSQL_USER: heloc_user
+      MYSQL_PASSWORD: heloc_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot_password"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  app:
+    build: .
+    environment:
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: heloc_user
+      DB_PASSWORD: heloc_password
+      DB_NAME: heloc_db
+    ports:
+      - "8501:8501"
+    depends_on:
+      db:
+        condition: service_healthy
