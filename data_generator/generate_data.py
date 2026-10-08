@@ -593,6 +593,12 @@ def save(conn, customers, properties, accounts, transactions, snapshots, limit_c
                   bucket_code, credit_score, property_value, cltv)
                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                snapshots)
+
+        # Risk labels come from the database's own scoring function (sql/04_procedures.sql)
+        cur.execute("SELECT COUNT(*) FROM information_schema.routines "
+                    "WHERE routine_schema = DATABASE() AND routine_name = 'sp_assign_risk_segments'")
+        if cur.fetchone()[0]:
+            cur.execute("CALL sp_assign_risk_segments(NULL)")
     conn.commit()
 
 
