@@ -348,5 +348,6 @@ erDiagram
 
 - About **300 customers**, each with one home and one HELOC; a few accounts close or are charged off
 - **24 months** of history: October 2024 to September 2026
-- About **6,000 monthly snapshots** and **20,000+ transactions**
+- **5,835 monthly snapshots** and **15,770 transactions** (the generator makes the same data every run)
 - Realistic behaviour: most customers pay on time, a small share fall behind, some recover, and a few are charged off; the prime rate follows real Bank of Canada changes
+- Late payments and losses are set higher than real Canadian bank levels on purpose, so patterns show up in a 300-account portfolio
