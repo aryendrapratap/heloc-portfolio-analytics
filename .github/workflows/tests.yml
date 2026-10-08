@@ -1,0 +1,49 @@
+name: tests
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      mysql:
+        image: mysql:9.7
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: heloc_db
+          MYSQL_USER: heloc_user
+          MYSQL_PASSWORD: ci_password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s
+          --health-timeout=5s
+          --health-retries=20
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 3306
+      DB_USER: heloc_user
+      DB_PASSWORD: ci_password
+      DB_NAME: heloc_db
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+          cache: pip
+
+      - name: Let the project user create triggers
+        run: mysql -h 127.0.0.1 -uroot -proot -e "SET PERSIST log_bin_trust_function_creators = 1;"
+
+      - name: Install packages
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        run: pytest -v
